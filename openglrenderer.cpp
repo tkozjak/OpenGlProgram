@@ -106,6 +106,6 @@ void OpenGlRenderer::paint()
 
 
     glUseProgram(shaderProgram);
-    glBindVertexArray(VAO_quad);
+    glBindVertexArray(VAO_tri);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
