@@ -28,6 +28,8 @@ int main(int argc, char *argv[])
     QQuickWindow *ui_window = qobject_cast<QQuickWindow*>(root_objects.at(0));
     qDebug() << ui_window->objectName();
 
+    ui_window->setClearBeforeRendering(false);
+
     // get root context
     QQmlContext *root_context = engine.rootContext();
 
@@ -37,7 +39,7 @@ int main(int argc, char *argv[])
     root_context->setContextProperty("_renderer", &renderer);
 
 
-    QObject::connect( ui_window, SIGNAL(afterRendering()), &renderer, SLOT(paint()), Qt::DirectConnection );
+    QObject::connect( ui_window, SIGNAL(beforeRendering()), &renderer, SLOT(paint()), Qt::DirectConnection );
 
 
     return app.exec();

@@ -10,6 +10,8 @@ Window {
     height: 480
     title: qsTr("OpengGl Test Window")
 
+//    color: "transparent"
+
     property real t: 0
 
     SequentialAnimation on t {
@@ -21,5 +23,17 @@ Window {
 
     onTChanged: {
         _renderer.t = t;
+    }
+
+    Rectangle{
+        width: 100
+        height: 100
+        color: "blue"
+        MouseArea{
+            anchors.fill: parent
+            onClicked: {
+                console.log( "clicked");
+            }
+        }
     }
 }
