@@ -5,14 +5,46 @@ OpenGlRenderer::OpenGlRenderer(QObject *parent) : QObject(parent)
 
 }
 
-void OpenGlRenderer::setWindow(QWindow * const window)
+void OpenGlRenderer::setWindow(QQuickWindow * const window)
 {
     m_window = window;
+}
+
+const QString OpenGlRenderer::stringFromShaderFile(QString url)
+{
+    QString data;
+    QString fileName(url);
+
+    QFile file(fileName);
+    if(!file.open(QIODevice::ReadOnly)) {
+        qDebug()<<"Shader file not opened."<<endl;
+    }
+    else
+    {
+        data = file.readAll();
+    }
+
+    file.close();
+
+    return data;
+}
+
+void OpenGlRenderer::setT(qreal t)
+{
+    if (t == m_time)
+        return;
+    m_time = t;
+
+    emit timeChanged();
+    if( m_window )
+        m_window->update();
 }
 
 void OpenGlRenderer::paint()
 {
     qDebug() << "paint called";
+
+    float greenValue = ( sin(m_time) / 1.0f ) + 0.0f;
 
     initializeOpenGLFunctions();
 
@@ -44,7 +76,7 @@ void OpenGlRenderer::paint()
     glGenBuffers(1, &VBO_tri);
     glBindBuffer(GL_ARRAY_BUFFER, VBO_tri);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices_triangle), vertices_triangle, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
     glEnableVertexAttribArray(0);
 
 
@@ -57,7 +89,7 @@ void OpenGlRenderer::paint()
     glGenBuffers(1, &VBO_quad);
     glBindBuffer(GL_ARRAY_BUFFER, VBO_quad);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices_quad), vertices_quad, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
     glEnableVertexAttribArray(0);
 
 
@@ -66,7 +98,8 @@ void OpenGlRenderer::paint()
     char infoLog[512];
 
     // SETUP VERTEX SHADER
-    const char* vertexShaderSource = "#version 330 core\n layout (location = 0) in vec3 aPos;\n void main(){ gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);}";
+    QByteArray data = stringFromShaderFile(":/Shaders/simple.vert").toLocal8Bit();
+    const char* vertexShaderSource = data.data();
     unsigned int vertexShader;
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
@@ -80,7 +113,8 @@ void OpenGlRenderer::paint()
 
 
     // SETUP FRAGMENT SHADER
-    const char* fragmentShaderSource = "#version 330 core\n out vec4 FragColor;\n void main(){ FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);}";
+    data = stringFromShaderFile(":/Shaders/simple.frag").toLocal8Bit();
+    const char* fragmentShaderSource = data.data();
     unsigned int fragmentShader;
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
@@ -104,8 +138,18 @@ void OpenGlRenderer::paint()
         qDebug() << "ERROR::PROGRAM::COMPILATION_FAILED" << infoLog;
     }
 
+    // GET UNIFORMS
+    int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
 
     glUseProgram(shaderProgram);
+
+    // SET UNIFORMS
+    glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+
     glBindVertexArray(VAO_tri);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+
+
+
+    m_window->resetOpenGLState();
 }

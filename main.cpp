@@ -2,7 +2,8 @@
 #include <QQmlApplicationEngine>
 
 #include <QQmlContext>
-#include <QWindow>
+#include <QQuickWindow>
+#include <QQmlContext>
 #include <QDebug>
 
 #include "openglrenderer.h"
@@ -22,13 +23,18 @@ int main(int argc, char *argv[])
                     Qt::QueuedConnection);
     engine.load(url);
 
-
+    // get root object ( QQuickWindow )
     QList<QObject*> root_objects = engine.rootObjects();
-    QWindow *ui_window = qobject_cast<QWindow*>(root_objects.at(0));
+    QQuickWindow *ui_window = qobject_cast<QQuickWindow*>(root_objects.at(0));
     qDebug() << ui_window->objectName();
+
+    // get root context
+    QQmlContext *root_context = engine.rootContext();
 
     OpenGlRenderer renderer;
     renderer.setWindow( ui_window );
+
+    root_context->setContextProperty("_renderer", &renderer);
 
 
     QObject::connect( ui_window, SIGNAL(afterRendering()), &renderer, SLOT(paint()), Qt::DirectConnection );
