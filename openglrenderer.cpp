@@ -51,7 +51,7 @@ void OpenGlRenderer::paint()
     int window_width = m_window->width();
     int window_height = m_window->height();
 
-    glViewport(0,0,window_width,window_height);
+    glViewport(0,0,100.0f,100.0f);
 
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
