@@ -21,6 +21,7 @@ public:
     OpenGlRenderer( QObject *parent  = nullptr );
     void setWindow( QQuickWindow* const window );
     const QString stringFromShaderFile( QString url );
+    Q_INVOKABLE void switchSwitch(){ m_switch = !m_switch; }
 
     // time property
     qreal t() const { return m_time; }
@@ -29,6 +30,7 @@ public:
 private:
     QQuickWindow* m_window = nullptr;
     qreal m_time;
+    bool m_switch = false;
 
 public slots:
     void paint();

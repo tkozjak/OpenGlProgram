@@ -62,10 +62,10 @@ void OpenGlRenderer::paint()
     float vertices[] = {
         // position             // color               // uv coordiantes
         -0.5f, -0.5f, 0.0f,     1.0, 0.0, 0.0, 1.0,    0.0, 0.0,
-        0.5f, -0.5f, 0.0f,     0.0, 1.0, 0.0, 1.0,    1.0, 0.0,
+         0.5f, -0.5f, 0.0f,     0.0, 1.0, 0.0, 1.0,    1.0, 0.0,
         -0.5f,  0.5f, 0.0f,     0.0, 0.0, 1.0, 1.0,    0.0, 1.0,
-        0.5f,  0.5f, 0.0f,     1.0, 1.0, 0.0, 1.0,    1.0, 1.0,
-        0.0f,  0.5f, 0.0f,     1.0, 0.0, 1.0, 1.0,    0.5, 1.0
+         0.5f,  0.5f, 0.0f,     1.0, 1.0, 0.0, 1.0,    1.0, 1.0,
+         0.0f,  0.5f, 0.0f,     1.0, 0.0, 1.0, 1.0,    0.5, 1.0
     };
     unsigned int indices_quad[]{
         0, 1, 2,
@@ -150,12 +150,6 @@ void OpenGlRenderer::paint()
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), reinterpret_cast<void*>(7* sizeof(float)) );
     glEnableVertexAttribArray(2);
 
-    //    glBindVertexArray(0);
-    //    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    //    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    //    glDeleteBuffers(1,&VBO);
-    //    glDeleteBuffers(1,&EBO_tri);
-
 
     // SETUP VAO for quad
     unsigned int VAO_quad;
@@ -178,12 +172,6 @@ void OpenGlRenderer::paint()
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(7* sizeof(float)));
     glEnableVertexAttribArray(2);
-
-    //    glBindVertexArray(0);
-    //    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    //    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    //    glDeleteBuffers(1,&VBO_quad);
-    //    glDeleteBuffers(1,&EBO_quad);
 
 
     // diagnostic items
@@ -244,7 +232,12 @@ void OpenGlRenderer::paint()
     glUniform1i( glGetUniformLocation(shaderProgram, "ourTexture_1"), 1 );
 
     // bind correct VAO and RENDER
-    glBindVertexArray(VAO_quad);
+    if( m_switch ){
+        glBindVertexArray(VAO_quad);
+    }
+    else
+        glBindVertexArray(VAO_tri);
+
     //    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
