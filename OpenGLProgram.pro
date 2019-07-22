@@ -31,6 +31,8 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
+PRECOMPILED_HEADER = glm_pch.h
+
 HEADERS += \
     glm/common.hpp \
     glm/detail/_features.hpp \
@@ -273,6 +275,7 @@ HEADERS += \
     glm/vec3.hpp \
     glm/vec4.hpp \
     glm/vector_relational.hpp \
+    glm_pch.h \
     openglrenderer.h \
     stb_image.h
 

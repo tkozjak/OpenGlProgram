@@ -9,9 +9,7 @@
 #include <QByteArray>
 
 #include "stb_image.h"
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include "glm_pch.h"
 
 class OpenGlRenderer : public QObject, protected QOpenGLFunctions_3_3_Core
 {
