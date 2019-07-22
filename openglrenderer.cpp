@@ -26,6 +26,8 @@ const QString OpenGlRenderer::stringFromShaderFile(QString url)
 
     file.close();
 
+    //    qDebug() << "Data size: " << data.size();
+
     return data;
 }
 
@@ -44,7 +46,7 @@ void OpenGlRenderer::paint()
 {
     //    qDebug() << "paint called";
 
-    float greenValue = ( sin(m_time) / 1.0f ) + 0.0f;
+    float greenValue = ( static_cast<float>(sin(m_time)) / 1.0f ) + 0.0f;
 
     initializeOpenGLFunctions();
 
@@ -96,6 +98,7 @@ void OpenGlRenderer::paint()
     }
     // free source data
     stbi_image_free(image_data);
+    //    glBindTexture(GL_TEXTURE_2D, 0);
 
     // texture_1
     image_data = stbi_load("awesomeface.png", &image_width, &image_height, &image_nrChannels, 0);
@@ -114,6 +117,7 @@ void OpenGlRenderer::paint()
     }
     // free source data
     stbi_image_free(image_data);
+    //    glBindTexture(GL_TEXTURE_2D, 0);
 
 
     // TRANSFORMATIONS
@@ -121,7 +125,7 @@ void OpenGlRenderer::paint()
     glm::mat4 trans = glm::mat4(1.0f); // initialize to identity
     trans = glm::translate(trans, glm::vec3(1.0f, 1.0f, 0.0f));
     vec = trans * vec;
-//    qDebug() << vec.x <<" "<< vec.y <<" "<< vec.z;
+    //    qDebug() << vec.x <<" "<< vec.y <<" "<< vec.z;
 
 
     // SETUP VAO for triangle
@@ -141,10 +145,16 @@ void OpenGlRenderer::paint()
     // vertex attributes
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), nullptr);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(3* sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), reinterpret_cast<void*>(3* sizeof(float)) );
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(7* sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), reinterpret_cast<void*>(7* sizeof(float)) );
     glEnableVertexAttribArray(2);
+
+    //    glBindVertexArray(0);
+    //    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    //    glDeleteBuffers(1,&VBO);
+    //    glDeleteBuffers(1,&EBO_tri);
 
 
     // SETUP VAO for quad
@@ -169,6 +179,12 @@ void OpenGlRenderer::paint()
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(7* sizeof(float)));
     glEnableVertexAttribArray(2);
 
+    //    glBindVertexArray(0);
+    //    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    //    glDeleteBuffers(1,&VBO_quad);
+    //    glDeleteBuffers(1,&EBO_quad);
+
 
     // diagnostic items
     int  success;
@@ -181,6 +197,7 @@ void OpenGlRenderer::paint()
     unsigned int vertexShader;
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
+    data.clear();
     glCompileShader(vertexShader);
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if(!success)
@@ -195,6 +212,7 @@ void OpenGlRenderer::paint()
     unsigned int fragmentShader;
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
+    data.clear();
     glCompileShader(fragmentShader);
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if(!success)
@@ -215,13 +233,13 @@ void OpenGlRenderer::paint()
         qDebug() << "ERROR::PROGRAM::COMPILATION_FAILED" << infoLog;
     }
 
-    // GET UNIFORMS
-    int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
-
     glUseProgram(shaderProgram);
 
-    // SET UNIFORMS
-    glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    // GET/SET UNIFORMS
+    glUniform4f( glGetUniformLocation(shaderProgram, "ourColor"), 0.0f, greenValue, 0.0f, 1.0f);
     glUniform1i( glGetUniformLocation(shaderProgram, "ourTexture_0"), 0 );
     glUniform1i( glGetUniformLocation(shaderProgram, "ourTexture_1"), 1 );
 
@@ -229,6 +247,27 @@ void OpenGlRenderer::paint()
     glBindVertexArray(VAO_quad);
     //    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+
+
+    // CLEANUP
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glDeleteVertexArrays(1, &VAO_quad);
+    glDeleteVertexArrays(1, &VAO_tri);
+
+    glDeleteProgram(shaderProgram);
+
+    glDeleteTextures(1, &texture_0);
+    glDeleteTextures(1, &texture_1);
+
+    glDeleteBuffers(1,&VBO);
+    glDeleteBuffers(1,&EBO_tri);
+    glDeleteBuffers(1,&VBO_quad);
+    glDeleteBuffers(1,&EBO_quad);
+
 
     m_window->resetOpenGLState();
 }

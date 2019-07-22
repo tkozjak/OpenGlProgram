@@ -5,7 +5,7 @@ Window {
     objectName: "OpenGl Window"
 
     visible: true
-//    visibility: Window.FullScreen
+    visibility: Window.FullScreen
     width: 640
     height: 480
     title: qsTr("OpengGl Test Window")
