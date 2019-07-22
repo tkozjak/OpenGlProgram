@@ -26,8 +26,10 @@ Window {
     }
 
     Rectangle{
-        width: 100
-        height: 100
+        x: 10
+        y: 10
+        width: 50
+        height: 50
         color: "blue"
         MouseArea{
             anchors.fill: parent

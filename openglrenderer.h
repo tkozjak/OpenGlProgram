@@ -6,8 +6,12 @@
 #include <QDebug>
 #include <QQuickWindow>
 #include <QFile>
-//#include <QString>
 #include <QByteArray>
+
+#include "stb_image.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 class OpenGlRenderer : public QObject, protected QOpenGLFunctions_3_3_Core
 {
