@@ -39,6 +39,8 @@ int main(int argc, char *argv[])
     root_context->setContextProperty("_renderer", &renderer);
 
 
+    QObject::connect( ui_window, SIGNAL(sceneGraphInitialized()), &renderer, SLOT(initialize()), Qt::DirectConnection );
+    QObject::connect( ui_window, SIGNAL(sceneGraphInvalidated()), &renderer, SLOT(cleanup()), Qt::DirectConnection );
     QObject::connect( ui_window, SIGNAL(beforeRendering()), &renderer, SLOT(paint()), Qt::DirectConnection );
 
 

@@ -31,15 +31,21 @@ const QString OpenGlRenderer::stringFromShaderFile(QString url)
     return data;
 }
 
-void OpenGlRenderer::setT(qreal t)
+// property setters
+void OpenGlRenderer::setTime(qreal in_time)
 {
-    if (t == m_time)
+    if (in_time == m_time)
         return;
-    m_time = t;
+    m_time = in_time;
 
     emit timeChanged();
     if( m_window )
         m_window->update();
+}
+
+void OpenGlRenderer::setGswitch( bool in_bool)
+{
+    m_gswitch = in_bool;
 }
 
 void OpenGlRenderer::paint()
@@ -48,7 +54,7 @@ void OpenGlRenderer::paint()
 
     float greenValue = ( static_cast<float>(sin(m_time)) / 1.0f ) + 0.0f;
 
-    initializeOpenGLFunctions();
+//    initializeOpenGLFunctions();
 
     int window_width = m_window->width();
     int window_height = m_window->height();
@@ -59,21 +65,21 @@ void OpenGlRenderer::paint()
     glClear(GL_COLOR_BUFFER_BIT);
 
     // GEOMETRY
-    float vertices[] = {
-        // position             // color               // uv coordiantes
-        -0.5f, -0.5f, 0.0f,     1.0, 0.0, 0.0, 1.0,    0.0, 0.0,
-         0.5f, -0.5f, 0.0f,     0.0, 1.0, 0.0, 1.0,    1.0, 0.0,
-        -0.5f,  0.5f, 0.0f,     0.0, 0.0, 1.0, 1.0,    0.0, 1.0,
-         0.5f,  0.5f, 0.0f,     1.0, 1.0, 0.0, 1.0,    1.0, 1.0,
-         0.0f,  0.5f, 0.0f,     1.0, 0.0, 1.0, 1.0,    0.5, 1.0
-    };
-    unsigned int indices_quad[]{
-        0, 1, 2,
-        2, 1, 3
-    };
-    unsigned int indices_tri[]{
-        0, 1, 4
-    };
+//    float vertices[] = {
+//        // position             // color               // uv coordiantes
+//        -0.5f, -0.5f, 0.0f,     1.0, 0.0, 0.0, 1.0,    0.0, 0.0,
+//         0.5f, -0.5f, 0.0f,     0.0, 1.0, 0.0, 1.0,    1.0, 0.0,
+//        -0.5f,  0.5f, 0.0f,     0.0, 0.0, 1.0, 1.0,    0.0, 1.0,
+//         0.5f,  0.5f, 0.0f,     1.0, 1.0, 0.0, 1.0,    1.0, 1.0,
+//         0.0f,  0.5f, 0.0f,     1.0, 0.0, 1.0, 1.0,    0.5, 1.0
+//    };
+//    unsigned int indices_quad[]{
+//        0, 1, 2,
+//        2, 1, 3
+//    };
+//    unsigned int indices_tri[]{
+//        0, 1, 4
+//    };
 
     // IMAGES and TEXTURES
     int image_width, image_height, image_nrChannels;
@@ -129,49 +135,49 @@ void OpenGlRenderer::paint()
 
 
     // SETUP VAO for triangle
-    unsigned int VAO_tri;
-    glGenVertexArrays(1, &VAO_tri);
-    glBindVertexArray(VAO_tri);
-    // vertex buffer
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    // index buffer
-    unsigned int EBO_tri;
-    glGenBuffers(1, &EBO_tri);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_tri);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices_tri), indices_tri, GL_STATIC_DRAW);
-    // vertex attributes
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), nullptr);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), reinterpret_cast<void*>(3* sizeof(float)) );
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), reinterpret_cast<void*>(7* sizeof(float)) );
-    glEnableVertexAttribArray(2);
+//    unsigned int VAO_tri;
+//    glGenVertexArrays(1, &VAO_tri);
+//    glBindVertexArray(VAO_tri);
+//    // vertex buffer
+//    unsigned int VBO;
+//    glGenBuffers(1, &VBO);
+//    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+//    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+//    // index buffer
+//    unsigned int EBO_tri;
+//    glGenBuffers(1, &EBO_tri);
+//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_tri);
+//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices_tri), indices_tri, GL_STATIC_DRAW);
+//    // vertex attributes
+//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), nullptr);
+//    glEnableVertexAttribArray(0);
+//    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), reinterpret_cast<void*>(3* sizeof(float)) );
+//    glEnableVertexAttribArray(1);
+//    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), reinterpret_cast<void*>(7* sizeof(float)) );
+//    glEnableVertexAttribArray(2);
 
 
     // SETUP VAO for quad
-    unsigned int VAO_quad;
-    glGenVertexArrays(1, &VAO_quad);
-    glBindVertexArray(VAO_quad);
-    // vertex buffer
-    unsigned int VBO_quad;
-    glGenBuffers(1, &VBO_quad);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_quad);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    // index buffer
-    unsigned int EBO_quad;
-    glGenBuffers(1, &EBO_quad);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_quad);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices_quad), indices_quad, GL_STATIC_DRAW);
-    // vertex attributes
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), nullptr);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(3* sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(7* sizeof(float)));
-    glEnableVertexAttribArray(2);
+//    unsigned int VAO_quad;
+//    glGenVertexArrays(1, &VAO_quad);
+//    glBindVertexArray(VAO_quad);
+//    // vertex buffer
+//    unsigned int VBO_quad;
+//    glGenBuffers(1, &VBO_quad);
+//    glBindBuffer(GL_ARRAY_BUFFER, VBO_quad);
+//    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+//    // index buffer
+//    unsigned int EBO_quad;
+//    glGenBuffers(1, &EBO_quad);
+//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_quad);
+//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices_quad), indices_quad, GL_STATIC_DRAW);
+//    // vertex attributes
+//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), nullptr);
+//    glEnableVertexAttribArray(0);
+//    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(3* sizeof(float)));
+//    glEnableVertexAttribArray(1);
+//    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(7* sizeof(float)));
+//    glEnableVertexAttribArray(2);
 
 
     // diagnostic items
@@ -232,35 +238,112 @@ void OpenGlRenderer::paint()
     glUniform1i( glGetUniformLocation(shaderProgram, "ourTexture_1"), 1 );
 
     // bind correct VAO and RENDER
-    if( m_switch ){
+    if( m_gswitch ){
         glBindVertexArray(VAO_quad);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
     }
-    else
+    else{
         glBindVertexArray(VAO_tri);
-
-    //    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-
+        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
+    }
 
     // CLEANUP
     glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+//    glBindBuffer(GL_ARRAY_BUFFER, 0);
+//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
-
-    glDeleteVertexArrays(1, &VAO_quad);
-    glDeleteVertexArrays(1, &VAO_tri);
 
     glDeleteProgram(shaderProgram);
 
     glDeleteTextures(1, &texture_0);
     glDeleteTextures(1, &texture_1);
 
-    glDeleteBuffers(1,&VBO);
-    glDeleteBuffers(1,&EBO_tri);
-    glDeleteBuffers(1,&VBO_quad);
-    glDeleteBuffers(1,&EBO_quad);
+//    glDeleteBuffers(1,&VBO);
+//    glDeleteBuffers(1,&EBO_tri);
+//    glDeleteBuffers(1,&VBO_quad);
+//    glDeleteBuffers(1,&EBO_quad);
 
 
     m_window->resetOpenGLState();
+}
+
+void OpenGlRenderer::initialize()
+{
+    qDebug() << "Initalize called.";
+
+    initializeOpenGLFunctions();
+
+    // GEOMETRY
+    float vertices[] = {
+        // position             // color               // uv coordiantes
+        -0.5f, -0.5f, 0.0f,     1.0, 0.0, 0.0, 1.0,    0.0, 0.0,
+         0.5f, -0.5f, 0.0f,     0.0, 1.0, 0.0, 1.0,    1.0, 0.0,
+        -0.5f,  0.5f, 0.0f,     0.0, 0.0, 1.0, 1.0,    0.0, 1.0,
+         0.5f,  0.5f, 0.0f,     1.0, 1.0, 0.0, 1.0,    1.0, 1.0,
+         0.0f,  0.5f, 0.0f,     1.0, 0.0, 1.0, 1.0,    0.5, 1.0
+    };
+    unsigned int indices_quad[]{
+        0, 1, 2,
+        2, 1, 3
+    };
+    unsigned int indices_tri[]{
+        0, 1, 4
+    };
+
+    // SETUP VAO for triangle
+    glGenVertexArrays(1, &VAO_tri);
+    glBindVertexArray(VAO_tri);
+    // vertex buffer
+    unsigned int VBO;
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    // index buffer
+    unsigned int EBO_tri;
+    glGenBuffers(1, &EBO_tri);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_tri);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices_tri), indices_tri, GL_STATIC_DRAW);
+    // vertex attributes
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), nullptr);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), reinterpret_cast<void*>(3* sizeof(float)) );
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), reinterpret_cast<void*>(7* sizeof(float)) );
+    glEnableVertexAttribArray(2);
+
+    glBindVertexArray(0);
+
+//    glDeleteBuffers(1,&VBO);
+//    glDeleteBuffers(1,&EBO_tri);
+
+    // SETUP VAO for quad
+    glGenVertexArrays(1, &VAO_quad);
+    glBindVertexArray(VAO_quad);
+    // vertex buffer
+    unsigned int VBO_quad;
+    glGenBuffers(1, &VBO_quad);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_quad);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    // index buffer
+    unsigned int EBO_quad;
+    glGenBuffers(1, &EBO_quad);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_quad);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices_quad), indices_quad, GL_STATIC_DRAW);
+    // vertex attributes
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), nullptr);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(3* sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(7* sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    glBindVertexArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+void OpenGlRenderer::cleanup()
+{
+//    qDebug() << "Cleanup called.";
 }

@@ -15,25 +15,34 @@ class OpenGlRenderer : public QObject, protected QOpenGLFunctions_3_3_Core
 {
     Q_OBJECT
 
-    Q_PROPERTY(qreal t READ t WRITE setT NOTIFY timeChanged)
+    Q_PROPERTY(qreal time READ time WRITE setTime NOTIFY timeChanged)
+    Q_PROPERTY(bool gswitch READ gswitch WRITE setGswitch )
 
 public:
     OpenGlRenderer( QObject *parent  = nullptr );
     void setWindow( QQuickWindow* const window );
     const QString stringFromShaderFile( QString url );
-    Q_INVOKABLE void switchSwitch(){ m_switch = !m_switch; }
 
     // time property
-    qreal t() const { return m_time; }
-    void setT(qreal t);
+    qreal time() const { return m_time; }
+    void setTime(qreal in_time );
+
+    // geometry switch property
+    bool gswitch() const { return m_gswitch; }
+    void setGswitch( bool in_bool );
 
 private:
     QQuickWindow* m_window = nullptr;
     qreal m_time;
-    bool m_switch = false;
+    bool m_gswitch = false;
+
+    unsigned int VAO_tri;
+    unsigned int VAO_quad;
 
 public slots:
     void paint();
+    void initialize();
+    void cleanup();
 
 signals:
     void timeChanged();
