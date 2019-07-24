@@ -14,6 +14,11 @@ int main(int argc, char *argv[])
 
     QGuiApplication app(argc, argv);
 
+    QSurfaceFormat format;
+    format.setSamples(8);
+    format.setProfile(QSurfaceFormat::CoreProfile);
+    QSurfaceFormat::setDefaultFormat(format);
+
     QQmlApplicationEngine engine;
 
     const QUrl url(QStringLiteral("qrc:/main.qml"));
