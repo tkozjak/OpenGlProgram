@@ -2,7 +2,8 @@
 #define OPENGLRENDERER_H
 
 #include <QObject>
-#include <QOpenGLFunctions_3_3_Core>
+#include <QOpenGLFunctions_4_3_Core>
+#include <QOpenGLContext>
 #include <QDebug>
 #include <QQuickWindow>
 #include <QFile>
@@ -11,7 +12,7 @@
 #include "stb_image.h"
 #include "glm_pch.h"
 
-class OpenGlRenderer : public QObject, protected QOpenGLFunctions_3_3_Core
+class OpenGlRenderer : public QObject, protected QOpenGLFunctions_4_3_Core
 {
     Q_OBJECT
 
@@ -38,11 +39,13 @@ private:
 
     unsigned int VAO_tri;
     unsigned int VAO_quad;
+    unsigned int VAO_box;
 
 public slots:
     void paint();
     void initialize();
     void cleanup();
+    void contextInfo();
 
 signals:
     void timeChanged();

@@ -31,7 +31,8 @@ const QString OpenGlRenderer::stringFromShaderFile(QString url)
     return data;
 }
 
-// property setters
+// PROPERTY SETTERS
+// time
 void OpenGlRenderer::setTime(qreal in_time)
 {
     if (in_time == m_time)
@@ -42,12 +43,13 @@ void OpenGlRenderer::setTime(qreal in_time)
     if( m_window )
         m_window->update();
 }
-
+// geometry switch
 void OpenGlRenderer::setGswitch( bool in_bool)
 {
     m_gswitch = in_bool;
 }
 
+// RENDER FUNCTION
 void OpenGlRenderer::paint()
 {
     //    qDebug() << "paint called";
@@ -60,7 +62,8 @@ void OpenGlRenderer::paint()
     // VIEWPORT
     glViewport(0,0,window_width,window_height);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
     // IMAGES and TEXTURES
@@ -109,11 +112,31 @@ void OpenGlRenderer::paint()
 
 
     // TRANSFORMATIONS
-    glm::vec4 vec(1.0f, 0.0f, 0.0f, 1.0f);
-    glm::mat4 trans = glm::mat4(1.0f); // initialize to identity
-    trans = glm::translate(trans, glm::vec3(1.0f, 1.0f, 0.0f));
-    vec = trans * vec;
-    //    qDebug() << vec.x <<" "<< vec.y <<" "<< vec.z;
+    // model matrix aka world matrix
+    glm::mat4 model = glm::mat4(1.0f);
+    float deg = -55 * static_cast<float>(m_time);
+    model = glm::rotate(model, glm::radians(deg), glm::vec3(0.0f, 1.0f, 0.0f));
+    // view matrix aka camera matrix
+    glm::mat4 view = glm::mat4(1.0f);
+    // note that we're translating the scene in the reverse direction of where we want to move
+    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -5.0f));
+    // projection matrix
+    glm::mat4 projection;
+    projection = glm::perspective(glm::radians(45.0f), static_cast<float>(window_width) / static_cast<float>(window_height), 0.1f, 100.0f);
+
+    // we render many cubes
+    glm::vec3 cubePositions[] = {
+      glm::vec3( 0.0f,  0.0f,  0.0f),
+      glm::vec3( 2.0f,  5.0f, -15.0f),
+      glm::vec3(-1.5f, -2.2f, -2.5f),
+      glm::vec3(-3.8f, -2.0f, -12.3f),
+      glm::vec3( 2.4f, -0.4f, -3.5f),
+      glm::vec3(-1.7f,  3.0f, -7.5f),
+      glm::vec3( 1.3f, -2.0f, -2.5f),
+      glm::vec3( 1.5f,  2.0f, -2.5f),
+      glm::vec3( 1.5f,  0.2f, -1.5f),
+      glm::vec3(-1.3f,  1.0f, -1.5f)
+    };
 
 
     // diagnostic items
@@ -172,15 +195,32 @@ void OpenGlRenderer::paint()
     glUniform4f( glGetUniformLocation(shaderProgram, "ourColor"), 0.0f, greenValue, 0.0f, 1.0f);
     glUniform1i( glGetUniformLocation(shaderProgram, "ourTexture_0"), 0 );
     glUniform1i( glGetUniformLocation(shaderProgram, "ourTexture_1"), 1 );
+    // set matrices
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
     // bind correct VAO and RENDER
     if( m_gswitch ){
         glBindVertexArray(VAO_quad);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
     }
+//    else{
+//        glBindVertexArray(VAO_tri);
+//        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
+//    }
     else{
-        glBindVertexArray(VAO_tri);
-        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
+        glBindVertexArray(VAO_box);
+        for(unsigned int i = 0; i < 10; i++)
+        {
+          glm::mat4 model = glm::mat4(1.0f);
+          model = glm::translate(model, cubePositions[i]);
+          float angle = 20.0f * (i+1)  * static_cast<float>(m_time);
+          model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+          glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
+          glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
     }
 
     // CLEANUP
@@ -194,11 +234,28 @@ void OpenGlRenderer::paint()
     m_window->resetOpenGLState();
 }
 
+// BUFFER INITIALIZATNIOS
 void OpenGlRenderer::initialize()
 {
     qDebug() << "Initalize called.";
 
     initializeOpenGLFunctions();
+
+    QOpenGLContext* context = m_window->openglContext();
+    QSurfaceFormat def_fb_surface_format = context->format();
+    int major = def_fb_surface_format.majorVersion();
+    int minor = def_fb_surface_format.minorVersion();
+    QSurfaceFormat::FormatOptions format_options = def_fb_surface_format.options();
+    QSurfaceFormat::ColorSpace  color_space = def_fb_surface_format.colorSpace();
+    QSurfaceFormat::OpenGLContextProfile context_profile = def_fb_surface_format.profile();
+    QSurfaceFormat::RenderableType renderable_type = def_fb_surface_format.renderableType();
+    qDebug() << "Default framebuffer surface version. Major: "<< major<<". Minor: "<<minor;
+    qDebug() << "Default framebuffer surface version. Major: "<< major<<". Minor: "<<minor;
+    qDebug() << "Default framebuffer surface. Format options: "<< format_options;
+    qDebug() << "Default framebuffer surface. Color space: "<< color_space;
+    qDebug() << "Default framebuffer surface. Context profile: "<< context_profile;
+    qDebug() << "Default framebuffer surface. Renderable type: "<< renderable_type;
+
 
     // GEOMETRY
     // vertices
@@ -265,10 +322,13 @@ void OpenGlRenderer::initialize()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_quad);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices_quad), indices_quad, GL_STATIC_DRAW);
     // vertex attributes
+    // position
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), nullptr);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(3* sizeof(float)));
+    // color
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(3* sizeof(float)));
     glEnableVertexAttribArray(1);
+    // tex coordinate
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(7* sizeof(float)));
     glEnableVertexAttribArray(2);
 
@@ -280,19 +340,100 @@ void OpenGlRenderer::initialize()
 
     glBindVertexArray(0);
 
+
+    // VAO for box
+    float box_vertices[] = {
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,     1.0, 0.0, 0.0, 1.0,
+         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,     1.0, 0.0, 0.0, 1.0,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,     1.0, 0.0, 0.0, 1.0,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,     1.0, 0.0, 0.0, 1.0,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,     1.0, 0.0, 0.0, 1.0,
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,     1.0, 0.0, 0.0, 1.0,
+
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,     1.0, 1.0, 0.0, 1.0,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,     1.0, 1.0, 0.0, 1.0,
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,     1.0, 1.0, 0.0, 1.0,
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,     1.0, 1.0, 0.0, 1.0,
+        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,     1.0, 1.0, 0.0, 1.0,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,     1.0, 1.0, 0.0, 1.0,
+
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,     1.0, 0.0, 1.0, 1.0,
+        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,     1.0, 0.0, 1.0, 1.0,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,     1.0, 0.0, 1.0, 1.0,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,     1.0, 0.0, 1.0, 1.0,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,     1.0, 0.0, 1.0, 1.0,
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,     1.0, 0.0, 1.0, 1.0,
+
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,     1.0, 1.0, 1.0, 1.0,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,     1.0, 1.0, 1.0, 1.0,
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,     1.0, 1.0, 1.0, 1.0,
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,     1.0, 1.0, 1.0, 1.0,
+         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,     1.0, 1.0, 1.0, 1.0,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,     1.0, 1.0, 1.0, 1.0,
+
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,     0.0, 1.0, 1.0, 1.0,
+         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,     0.0, 1.0, 1.0, 1.0,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,     0.0, 1.0, 1.0, 1.0,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,     0.0, 1.0, 1.0, 1.0,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,     0.0, 1.0, 1.0, 1.0,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,     0.0, 1.0, 1.0, 1.0,
+
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,     1.0, 0.0, 0.0, 1.0,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,     1.0, 0.0, 0.0, 1.0,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,     1.0, 0.0, 0.0, 1.0,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,     1.0, 0.0, 0.0, 1.0,
+        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,     1.0, 0.0, 0.0, 1.0,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,     1.0, 0.0, 0.0, 1.0,
+    };
+
+    glGenVertexArrays(1, &VAO_box);
+    glBindVertexArray(VAO_box);
+    // vertex buffer
+    unsigned int VBO_box;
+    glGenBuffers(1, &VBO_box);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_box);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(box_vertices), box_vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    // vertex attributes
+    // positions
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), nullptr);
+    glEnableVertexAttribArray(0);
+    // color
+    // tex coordinates
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(5* sizeof(float)));
+    glEnableVertexAttribArray(1);
+    // tex coordinates
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(3* sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    // diagnostic
+    glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+    qDebug() << "Vertex buffer size (box): " << size;
+    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+    qDebug() << "Index buffer size (box): " << size;
+
+    glBindVertexArray(0);
+
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-
     // not sure about this
-    glDeleteBuffers(1,&VBO);
-    glDeleteBuffers(1,&EBO_tri);
-    glDeleteBuffers(1,&VBO_quad);
-    glDeleteBuffers(1,&EBO_quad);
+    // does not work on HP!
+//    glDeleteBuffers(1,&VBO);
+//    glDeleteBuffers(1,&EBO_tri);
+//    glDeleteBuffers(1,&VBO_quad);
+//    glDeleteBuffers(1,&EBO_quad);
 
 }
 
+// CLEANUP
 void OpenGlRenderer::cleanup()
 {
-//    qDebug() << "Cleanup called.";
+    //    qDebug() << "Cleanup called.";
+}
+
+void OpenGlRenderer::contextInfo()
+{
+
 }

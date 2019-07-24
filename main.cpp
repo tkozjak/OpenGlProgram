@@ -43,6 +43,5 @@ int main(int argc, char *argv[])
     QObject::connect( ui_window, SIGNAL(sceneGraphInvalidated()), &renderer, SLOT(cleanup()), Qt::DirectConnection );
     QObject::connect( ui_window, SIGNAL(beforeRendering()), &renderer, SLOT(paint()), Qt::DirectConnection );
 
-
     return app.exec();
 }

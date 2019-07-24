@@ -15,8 +15,8 @@ Window {
     property real time: 0
 
     SequentialAnimation on time {
-        NumberAnimation { to: 1; duration: 2500; }
-        NumberAnimation { to: 0; duration: 2500; }
+        NumberAnimation { to: 1; duration: 2500;  easing.type: Easing.InOutQuad  }
+        NumberAnimation { to: 0; duration: 2500;  easing.type: Easing.InOutQuad }
         loops: Animation.Infinite
         running: true
     }
