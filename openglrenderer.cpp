@@ -54,8 +54,6 @@ void OpenGlRenderer::paint()
 
     float greenValue = ( static_cast<float>(sin(m_time)) / 1.0f ) + 0.0f;
 
-//    initializeOpenGLFunctions();
-
     int window_width = m_window->width();
     int window_height = m_window->height();
 
@@ -64,22 +62,6 @@ void OpenGlRenderer::paint()
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // GEOMETRY
-//    float vertices[] = {
-//        // position             // color               // uv coordiantes
-//        -0.5f, -0.5f, 0.0f,     1.0, 0.0, 0.0, 1.0,    0.0, 0.0,
-//         0.5f, -0.5f, 0.0f,     0.0, 1.0, 0.0, 1.0,    1.0, 0.0,
-//        -0.5f,  0.5f, 0.0f,     0.0, 0.0, 1.0, 1.0,    0.0, 1.0,
-//         0.5f,  0.5f, 0.0f,     1.0, 1.0, 0.0, 1.0,    1.0, 1.0,
-//         0.0f,  0.5f, 0.0f,     1.0, 0.0, 1.0, 1.0,    0.5, 1.0
-//    };
-//    unsigned int indices_quad[]{
-//        0, 1, 2,
-//        2, 1, 3
-//    };
-//    unsigned int indices_tri[]{
-//        0, 1, 4
-//    };
 
     // IMAGES and TEXTURES
     int image_width, image_height, image_nrChannels;
@@ -132,52 +114,6 @@ void OpenGlRenderer::paint()
     trans = glm::translate(trans, glm::vec3(1.0f, 1.0f, 0.0f));
     vec = trans * vec;
     //    qDebug() << vec.x <<" "<< vec.y <<" "<< vec.z;
-
-
-    // SETUP VAO for triangle
-//    unsigned int VAO_tri;
-//    glGenVertexArrays(1, &VAO_tri);
-//    glBindVertexArray(VAO_tri);
-//    // vertex buffer
-//    unsigned int VBO;
-//    glGenBuffers(1, &VBO);
-//    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-//    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-//    // index buffer
-//    unsigned int EBO_tri;
-//    glGenBuffers(1, &EBO_tri);
-//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_tri);
-//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices_tri), indices_tri, GL_STATIC_DRAW);
-//    // vertex attributes
-//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), nullptr);
-//    glEnableVertexAttribArray(0);
-//    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), reinterpret_cast<void*>(3* sizeof(float)) );
-//    glEnableVertexAttribArray(1);
-//    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), reinterpret_cast<void*>(7* sizeof(float)) );
-//    glEnableVertexAttribArray(2);
-
-
-    // SETUP VAO for quad
-//    unsigned int VAO_quad;
-//    glGenVertexArrays(1, &VAO_quad);
-//    glBindVertexArray(VAO_quad);
-//    // vertex buffer
-//    unsigned int VBO_quad;
-//    glGenBuffers(1, &VBO_quad);
-//    glBindBuffer(GL_ARRAY_BUFFER, VBO_quad);
-//    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-//    // index buffer
-//    unsigned int EBO_quad;
-//    glGenBuffers(1, &EBO_quad);
-//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_quad);
-//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices_quad), indices_quad, GL_STATIC_DRAW);
-//    // vertex attributes
-//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), nullptr);
-//    glEnableVertexAttribArray(0);
-//    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(3* sizeof(float)));
-//    glEnableVertexAttribArray(1);
-//    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(7* sizeof(float)));
-//    glEnableVertexAttribArray(2);
 
 
     // diagnostic items
@@ -249,19 +185,10 @@ void OpenGlRenderer::paint()
 
     // CLEANUP
     glBindVertexArray(0);
-//    glBindBuffer(GL_ARRAY_BUFFER, 0);
-//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
-
     glDeleteProgram(shaderProgram);
-
     glDeleteTextures(1, &texture_0);
     glDeleteTextures(1, &texture_1);
-
-//    glDeleteBuffers(1,&VBO);
-//    glDeleteBuffers(1,&EBO_tri);
-//    glDeleteBuffers(1,&VBO_quad);
-//    glDeleteBuffers(1,&EBO_quad);
 
 
     m_window->resetOpenGLState();
@@ -274,6 +201,7 @@ void OpenGlRenderer::initialize()
     initializeOpenGLFunctions();
 
     // GEOMETRY
+    // vertices
     float vertices[] = {
         // position             // color               // uv coordiantes
         -0.5f, -0.5f, 0.0f,     1.0, 0.0, 0.0, 1.0,    0.0, 0.0,
@@ -282,10 +210,12 @@ void OpenGlRenderer::initialize()
          0.5f,  0.5f, 0.0f,     1.0, 1.0, 0.0, 1.0,    1.0, 1.0,
          0.0f,  0.5f, 0.0f,     1.0, 0.0, 1.0, 1.0,    0.5, 1.0
     };
+    // quad indices
     unsigned int indices_quad[]{
         0, 1, 2,
         2, 1, 3
     };
+    // triangle indices
     unsigned int indices_tri[]{
         0, 1, 4
     };
@@ -311,10 +241,15 @@ void OpenGlRenderer::initialize()
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), reinterpret_cast<void*>(7* sizeof(float)) );
     glEnableVertexAttribArray(2);
 
+    // diagnostic
+    GLint size = 0;
+    glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+    qDebug() << "Vertex buffer size (triangle): " << size;
+    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+    qDebug() << "Index buffer size (triangle): " << size;
+
     glBindVertexArray(0);
 
-//    glDeleteBuffers(1,&VBO);
-//    glDeleteBuffers(1,&EBO_tri);
 
     // SETUP VAO for quad
     glGenVertexArrays(1, &VAO_quad);
@@ -337,10 +272,24 @@ void OpenGlRenderer::initialize()
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(7* sizeof(float)));
     glEnableVertexAttribArray(2);
 
+    // diagnostic
+    glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+    qDebug() << "Vertex buffer size (quad): " << size;
+    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+    qDebug() << "Index buffer size (quad): " << size;
+
     glBindVertexArray(0);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+
+    // not sure about this
+    glDeleteBuffers(1,&VBO);
+    glDeleteBuffers(1,&EBO_tri);
+    glDeleteBuffers(1,&VBO_quad);
+    glDeleteBuffers(1,&EBO_quad);
+
 }
 
 void OpenGlRenderer::cleanup()
