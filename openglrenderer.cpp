@@ -256,6 +256,22 @@ void OpenGlRenderer::initialize()
     qDebug() << "Default framebuffer surface. Context profile: "<< context_profile;
     qDebug() << "Default framebuffer surface. Renderable type: "<< renderable_type;
 
+    //COMPUTE SHADER INFO
+    int maxsizeX;
+    uint dim = 0;
+    glGetIntegeri_v( GL_MAX_COMPUTE_WORK_GROUP_SIZE, dim, &maxsizeX );
+    int maxsizeY;
+    dim = 1;
+    glGetIntegeri_v( GL_MAX_COMPUTE_WORK_GROUP_SIZE, dim, &maxsizeY );
+    int maxsizeZ;
+    dim = 2;
+    glGetIntegeri_v( GL_MAX_COMPUTE_WORK_GROUP_SIZE, dim, &maxsizeZ );
+    qDebug() << "Max (local) work group size (x,y,z): "<< maxsizeX <<", "<< maxsizeY <<", "<< maxsizeZ;
+
+    int maxInvoc;
+    glGetIntegerv( GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &maxInvoc );
+    qDebug() << "Max invocations in (local) work group: "<< maxInvoc;
+
 
     // GEOMETRY
     // vertices
