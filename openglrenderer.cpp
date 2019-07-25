@@ -65,6 +65,53 @@ void OpenGlRenderer::paint()
     glEnable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // diagnostic items
+    int  success;
+    char infoLog[512];
+
+    // COMPUTE SHADER TEST
+    // create texture
+    int tex_w = 512, tex_h = 512;
+    GLuint tex_output;
+    glGenTextures(1, &tex_output);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, tex_output);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, tex_w, tex_h, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glBindImageTexture(0, tex_output, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    // create compute shader
+    QByteArray data = stringFromShaderFile(":/Shaders/simpleCompute").toLocal8Bit();
+    const char* computeShaderSource = data.data();
+    GLuint computeShader = glCreateShader(GL_COMPUTE_SHADER);
+    glShaderSource(computeShader, 1, &computeShaderSource, nullptr);
+    glCompileShader(computeShader);
+    glGetShaderiv(computeShader, GL_COMPILE_STATUS, &success);
+    // check compilation errors
+    if(!success)
+    {
+        glGetShaderInfoLog(computeShader, 512, nullptr, infoLog);
+        qDebug() << "ERROR::SHADER::COMPUTE::COMPILATION_FAILED" << infoLog;
+    }
+    GLuint computeProgram = glCreateProgram();
+    glAttachShader(computeProgram, computeShader);
+    // link program
+    glLinkProgram(computeProgram);
+    // check link errors
+    glGetProgramiv(computeProgram, GL_LINK_STATUS, &success);
+    if(!success) {
+        glGetProgramInfoLog(computeProgram, 512, nullptr, infoLog);
+        qDebug() << "ERROR::COMPUTE::PROGRAM::COMPILATION_FAILED" << infoLog;
+    }
+
+    glUseProgram(computeProgram);
+    glDispatchCompute((GLuint)tex_w, (GLuint)tex_h, 1);
+
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+
 
     // IMAGES and TEXTURES
     int image_width, image_height, image_nrChannels;
@@ -139,13 +186,9 @@ void OpenGlRenderer::paint()
     };
 
 
-    // diagnostic items
-    int  success;
-    char infoLog[512];
-
 
     // SETUP VERTEX SHADER
-    QByteArray data = stringFromShaderFile(":/Shaders/simple.vert").toLocal8Bit();
+    data = stringFromShaderFile(":/Shaders/simple.vert").toLocal8Bit();
     const char* vertexShaderSource = data.data();
     unsigned int vertexShader;
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -188,6 +231,7 @@ void OpenGlRenderer::paint()
 
     glUseProgram(shaderProgram);
 
+
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
@@ -199,6 +243,10 @@ void OpenGlRenderer::paint()
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+    // set compute shader result
+    glUniform1i( glGetUniformLocation(shaderProgram, "ourComputeShaderTexture"), 2 );
+
 
     // bind correct VAO and RENDER
     if( m_gswitch ){
@@ -229,6 +277,11 @@ void OpenGlRenderer::paint()
     glDeleteProgram(shaderProgram);
     glDeleteTextures(1, &texture_0);
     glDeleteTextures(1, &texture_1);
+
+    // COMPUTE SHADER CLEANUP
+    glDeleteTextures(1, &tex_output);
+    glDeleteShader(computeShader);
+    glDeleteProgram(computeProgram);
 
 
     m_window->resetOpenGLState();

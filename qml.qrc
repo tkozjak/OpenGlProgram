@@ -3,5 +3,6 @@
         <file>main.qml</file>
         <file>Shaders/simple.vert</file>
         <file>Shaders/simple.frag</file>
+        <file>Shaders/simpleCompute</file>
     </qresource>
 </RCC>
