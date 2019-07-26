@@ -2,17 +2,24 @@
 #define OPENGLRENDERER_H
 
 #include <QObject>
-#include <QOpenGLFunctions_4_3_Core>
+#include <QOpenGLFunctions_4_4_Core>
 #include <QOpenGLContext>
 #include <QDebug>
 #include <QQuickWindow>
 #include <QFile>
 #include <QByteArray>
+#include <QRandomGenerator>
 
 #include "stb_image.h"
 #include "glm_pch.h"
 
-class OpenGlRenderer : public QObject, protected QOpenGLFunctions_4_3_Core
+
+// ALLOCATE COMPUTE SHADER BUFFERS
+#define NUM_PARTICLES 1024*1024
+#define WORK_GROUP_SIZE 128
+
+
+class OpenGlRenderer : public QObject, protected QOpenGLFunctions_4_4_Core
 {
     Q_OBJECT
 
@@ -40,6 +47,7 @@ private:
     unsigned int VAO_tri;
     unsigned int VAO_quad;
     unsigned int VAO_box;
+    unsigned int VAO_points;
 
 public slots:
     void paint();

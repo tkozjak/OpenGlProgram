@@ -19,4 +19,7 @@ void main(){
 
     // compute shader texture
     FragColor = texture( ourComputeShaderTexture, out_texCoordinate_01);
+
+    // compute shader texture
+    FragColor = out_vertexColor;
 }

@@ -4,5 +4,6 @@
         <file>Shaders/simple.vert</file>
         <file>Shaders/simple.frag</file>
         <file>Shaders/simpleCompute</file>
+        <file>Shaders/particleCompute</file>
     </qresource>
 </RCC>

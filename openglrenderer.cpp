@@ -112,6 +112,36 @@ void OpenGlRenderer::paint()
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 
+    // PARTICLES COMPUTE SHADER
+    // create compute shader
+    data = stringFromShaderFile(":/Shaders/particleCompute").toLocal8Bit();
+    const char* computeParticlesSource = data.data();
+    GLuint computeParticlesShader = glCreateShader(GL_COMPUTE_SHADER);
+    glShaderSource(computeParticlesShader, 1, &computeParticlesSource, nullptr);
+    glCompileShader(computeParticlesShader);
+    glGetShaderiv(computeParticlesShader, GL_COMPILE_STATUS, &success);
+    // check compilation errors
+    if(!success)
+    {
+        glGetShaderInfoLog(computeParticlesShader, 512, nullptr, infoLog);
+        qDebug() << "ERROR::SHADER::PARTICLE::COMPUTE::COMPILATION_FAILED" << infoLog;
+    }
+    GLuint computeParticlesProgram = glCreateProgram();
+    glAttachShader(computeParticlesProgram, computeParticlesShader);
+    // link program
+    glLinkProgram(computeParticlesProgram);
+    // check link errors
+    glGetProgramiv(computeParticlesProgram, GL_LINK_STATUS, &success);
+    if(!success) {
+        glGetProgramInfoLog(computeParticlesProgram, 512, nullptr, infoLog);
+        qDebug() << "ERROR::::PARTICLE::PROGRAM::COMPILATION_FAILED" << infoLog;
+    }
+
+    glUseProgram(computeParticlesProgram);
+    glDispatchCompute( NUM_PARTICLES/WORK_GROUP_SIZE, 1, 1);
+
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
 
     // IMAGES and TEXTURES
     int image_width, image_height, image_nrChannels;
@@ -166,7 +196,7 @@ void OpenGlRenderer::paint()
     // view matrix aka camera matrix
     glm::mat4 view = glm::mat4(1.0f);
     // note that we're translating the scene in the reverse direction of where we want to move
-    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -5.0f));
+    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -15.0f));
     // projection matrix
     glm::mat4 projection;
     projection = glm::perspective(glm::radians(45.0f), static_cast<float>(window_width) / static_cast<float>(window_height), 0.1f, 100.0f);
@@ -271,6 +301,11 @@ void OpenGlRenderer::paint()
         }
     }
 
+    // draw SSBO particles as points
+    glBindVertexArray( VAO_points );
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
+    glDrawArrays( GL_POINTS, 0, 1024*1024 );
+
     // CLEANUP
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -293,6 +328,7 @@ void OpenGlRenderer::initialize()
     qDebug() << "Initalize called.";
 
     initializeOpenGLFunctions();
+    QRandomGenerator rd;
 
     QOpenGLContext* context = m_window->openglContext();
     QSurfaceFormat def_fb_surface_format = context->format();
@@ -324,6 +360,90 @@ void OpenGlRenderer::initialize()
     int maxInvoc;
     glGetIntegerv( GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &maxInvoc );
     qDebug() << "Max invocations in (local) work group: "<< maxInvoc;
+
+
+    // POINTS COMPUTE SHADER
+    // structure for particle position
+    struct pos{
+        float x, y, z , w;
+    };
+    // create and bind shader storage buffer object
+    GLuint posSSbo;
+    glGenBuffers( 1, &posSSbo);
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, posSSbo );
+    // allocate buffer storage to correct size
+    glBufferData( GL_SHADER_STORAGE_BUFFER, NUM_PARTICLES * sizeof(struct pos), nullptr, GL_STATIC_DRAW );
+    // usage bits for buffer mapping
+    GLbitfield bufMask = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT;
+    // get pointer to buffer storage, cast it as a pointer to our struct
+    struct pos* points = (struct pos*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_PARTICLES * sizeof( struct pos ), bufMask);
+    // fill our buffer
+    for( int i = 0; i < NUM_PARTICLES; i++){
+        points[i].x = static_cast<float>((rd.generateDouble()-0.5) * 0.2);
+        points[i].y = static_cast<float>((rd.generateDouble()-0.5) * 0.2);
+        points[i].z = static_cast<float>((rd.generateDouble()-0.5) * 0.2);
+        points[i].w = 1.0;
+    }
+    glUnmapBuffer( GL_SHADER_STORAGE_BUFFER );
+
+    // structure for particle velocity
+    struct vel{
+        float vx, vy, vz , vw;
+    };
+    // create and bind shader storage buffer object
+    GLuint velSSbo;
+    glGenBuffers( 1, &velSSbo);
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, velSSbo );
+    // allocate buffer storage to correct size
+    glBufferData( GL_SHADER_STORAGE_BUFFER, NUM_PARTICLES * sizeof(struct vel), nullptr, GL_STATIC_DRAW );
+    // get pointer to buffer storage, cast it as a pointer to our struct
+    struct vel* velocities = (struct vel*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_PARTICLES * sizeof( struct vel ), bufMask);
+    // fill our buffer
+    for( int i = 0; i < NUM_PARTICLES; i++){
+        velocities[i].vx = static_cast<float>((rd.generateDouble()-0.5) * 20.0);
+        velocities[i].vy = static_cast<float>((rd.generateDouble()-0.5) * 20.0);
+        velocities[i].vz = static_cast<float>((rd.generateDouble()-0.5) * 20.0);
+        velocities[i].vw = 0.0;
+    }
+    glUnmapBuffer( GL_SHADER_STORAGE_BUFFER );
+
+    // structure for particle color
+    struct col{
+        float r, g, b, a;
+    };
+    // create and bind shader storage buffer object
+    GLuint colSSbo;
+    glGenBuffers( 1, &colSSbo);
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, colSSbo );
+    // allocate buffer storage to correct size
+    glBufferData( GL_SHADER_STORAGE_BUFFER, NUM_PARTICLES * sizeof(struct col), nullptr, GL_STATIC_DRAW );
+    // get pointer to buffer storage, cast it as a pointer to our struct
+    struct col* colors = (struct col*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_PARTICLES * sizeof( struct col ), bufMask);
+    // fill our buffer
+    for( int i = 0; i < NUM_PARTICLES; i++){
+        colors[i].r = static_cast<float>(rd.generateDouble());
+        colors[i].g = static_cast<float>(rd.generateDouble());
+        colors[i].b = static_cast<float>(rd.generateDouble());
+        colors[i].a = 1.0;
+    }
+    glUnmapBuffer( GL_SHADER_STORAGE_BUFFER );
+
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER,  4,  posSSbo );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER,  5,  velSSbo );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER,  6,  colSSbo );
+
+    // create VAO for rendering this points
+    glGenVertexArrays(1, &VAO_points);
+    glBindVertexArray(VAO_points);
+    // bind SSBO buffer
+    glBindBuffer(GL_ARRAY_BUFFER, posSSbo);
+    // set vertex attributes
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), nullptr);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 12 * sizeof(float), reinterpret_cast<void*>(4* sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glBindVertexArray(0);
+
 
 
     // GEOMETRY
@@ -461,7 +581,7 @@ void OpenGlRenderer::initialize()
     unsigned int VBO_box;
     glGenBuffers(1, &VBO_box);
     glBindBuffer(GL_ARRAY_BUFFER, VBO_box);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(box_vertices), box_vertices, GL_STATIC_DRAW);
+    glBufferStorage(GL_ARRAY_BUFFER, sizeof(box_vertices), box_vertices, GL_MAP_READ_BIT); // testing buffer storage
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     // vertex attributes
     // positions
