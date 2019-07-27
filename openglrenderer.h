@@ -10,14 +10,16 @@
 #include <QByteArray>
 #include <QRandomGenerator>
 #include <QtMath>
+#include <QList>
+#include <QMap>
 
 #include "stb_image.h"
 #include "glm_pch.h"
 
 
 // ALLOCATE COMPUTE SHADER BUFFERS
-#define NUM_PARTICLES 256*256
-#define WORK_GROUP_SIZE 128
+#define NUM_PARTICLES 128*128
+#define WORK_GROUP_SIZE 32
 
 
 class OpenGlRenderer : public QObject, protected QOpenGLFunctions_4_4_Core
@@ -49,6 +51,12 @@ private:
     unsigned int VAO_quad;
     unsigned int VAO_box;
     unsigned int VAO_points;
+
+    // texture identifiers array
+    QList<unsigned int> m_textures;
+    QMap<QString, unsigned int> m_shaderPrograms;
+    QMap<QString, unsigned int> m_imageTextures;
+
 
 public slots:
     void paint();

@@ -1,27 +1,27 @@
 #version 440 compatibility
 
-layout( std140, binding=4 ) buffer Pos
+layout( std430, binding=4 ) buffer Pos
 {
     vec4  Positions[];
 };
 
-layout( std140, binding=5 ) buffer Vel
+layout( std430, binding=5 ) buffer Vel
 {
     vec4  Velocities[];
 };
-layout( std140, binding=6 ) buffer Col
+layout( std430, binding=6 ) buffer Col
 {
     vec4  Colors[];
 };
 
-layout( local_size_x = 128,  local_size_y = 1, local_size_z = 1 )   in;
+layout( local_size_x = 32,  local_size_y = 1, local_size_z = 1 )   in;
 
-const vec3 G = vec3( 0., -9.8, 0. );
-const float DT = 0.016;
+const vec3 G = vec3( 0.0, -9.8, 0.0 );
+const float DT = 0.010;
 
-const vec3 groundPlane = vec3( 0.0, -3.5, 0.0 );
+const vec3 groundPlane = vec3( 0.0, -2.0, 0.0 );
 
-const float dumpFactor = 0.99;
+const float dumpFactor = 0.0;
 
 bool IsBelowSurface( vec3 position, vec3 surface ){
     if( surface.y > position.y )
@@ -44,12 +44,12 @@ void main() {
     vec3 vp = v + G*DT;
 
     if( IsBelowSurface(pp, groundPlane)){
-        vp = BounceFromGround( vp );
+        vp = BounceFromGround( vp ) * dumpFactor;
         pp = p + v*DT + 0.5*DT*DT*G;
     }
 
     Positions[gid].xyz = pp;
-    Velocities[gid].xyz = vp * dumpFactor;
+    Velocities[gid].xyz = vp;
 
 
 }

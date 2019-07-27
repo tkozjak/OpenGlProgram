@@ -54,139 +54,32 @@ void OpenGlRenderer::paint()
 {
     //    qDebug() << "paint called";
 
-    float greenValue = ( static_cast<float>(sin(m_time)) / 1.0f ) + 0.0f;
+    float time = static_cast<float>(sin(m_time));
 
     int window_width = m_window->width();
     int window_height = m_window->height();
 
+
     // VIEWPORT
-    glViewport(0,0,window_width,window_height);
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glEnable(GL_DEPTH_TEST);
+    glViewport(0,0, window_width, window_height);
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);    
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // diagnostic items
-    int  success;
-    char infoLog[512];
 
-    // COMPUTE SHADER - FILL TEXTURE
-    // create texture
+    // RUN FILL TEXTURE COMPUTE SHADER PROGRAM
     int tex_w = 512, tex_h = 512;
     int group_size = 32;
-    GLuint tex_output;
-    glGenTextures(1, &tex_output);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, tex_output);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, tex_w, tex_h, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glBindImageTexture(0, tex_output, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    // create compute shader
-    QByteArray data = stringFromShaderFile(":/Shaders/simpleCompute").toLocal8Bit();
-    const char* computeShaderSource = data.data();
-    GLuint computeShader = glCreateShader(GL_COMPUTE_SHADER);
-    glShaderSource(computeShader, 1, &computeShaderSource, nullptr);
-    glCompileShader(computeShader);
-    glGetShaderiv(computeShader, GL_COMPILE_STATUS, &success);
-    // check compilation errors
-    if(!success)
-    {
-        glGetShaderInfoLog(computeShader, 512, nullptr, infoLog);
-        qDebug() << "ERROR::SHADER::COMPUTE::COMPILATION_FAILED" << infoLog;
-    }
-    GLuint computeProgram = glCreateProgram();
-    glAttachShader(computeProgram, computeShader);
-    // link program
-    glLinkProgram(computeProgram);
-    // check link errors
-    glGetProgramiv(computeProgram, GL_LINK_STATUS, &success);
-    if(!success) {
-        glGetProgramInfoLog(computeProgram, 512, nullptr, infoLog);
-        qDebug() << "ERROR::COMPUTE::PROGRAM::COMPILATION_FAILED" << infoLog;
-    }
-
-    glUseProgram(computeProgram);
+    glUseProgram(m_shaderPrograms["fill_texture_compute_prg"]);
     glDispatchCompute((GLuint)tex_w/group_size, (GLuint)tex_h/group_size, 1);
-
+    // put up memory barrier
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 
-    // PARTICLES COMPUTE SHADER
-    // create compute shader
-    data = stringFromShaderFile(":/Shaders/particleCompute").toLocal8Bit();
-    const char* computeParticlesSource = data.data();
-    GLuint computeParticlesShader = glCreateShader(GL_COMPUTE_SHADER);
-    glShaderSource(computeParticlesShader, 1, &computeParticlesSource, nullptr);
-    glCompileShader(computeParticlesShader);
-    glGetShaderiv(computeParticlesShader, GL_COMPILE_STATUS, &success);
-    // check compilation errors
-    if(!success)
-    {
-        glGetShaderInfoLog(computeParticlesShader, 512, nullptr, infoLog);
-        qDebug() << "ERROR::SHADER::PARTICLE::COMPUTE::COMPILATION_FAILED" << infoLog;
-    }
-    GLuint computeParticlesProgram = glCreateProgram();
-    glAttachShader(computeParticlesProgram, computeParticlesShader);
-    // link program
-    glLinkProgram(computeParticlesProgram);
-    // check link errors
-    glGetProgramiv(computeParticlesProgram, GL_LINK_STATUS, &success);
-    if(!success) {
-        glGetProgramInfoLog(computeParticlesProgram, 512, nullptr, infoLog);
-        qDebug() << "ERROR::::PARTICLE::PROGRAM::COMPILATION_FAILED" << infoLog;
-    }
-
-    glUseProgram(computeParticlesProgram);
+    // RUN PARTICLES COMPUTE SHADER PROGRAM
+    glUseProgram(m_shaderPrograms["particles_compute_prg"]);
     glDispatchCompute( NUM_PARTICLES/WORK_GROUP_SIZE, 1, 1);
-
+    // put up memory barrier
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-
-    // IMAGES and TEXTURES
-    int image_width, image_height, image_nrChannels;
-    unsigned char *image_data;
-    stbi_set_flip_vertically_on_load(true);
-
-    // texture_0
-    image_data = stbi_load("container.jpg", &image_width, &image_height, &image_nrChannels, 0);
-    unsigned int texture_0;
-    glGenTextures(1, &texture_0);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture_0);
-    // filters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // copy data
-    if( image_data ){
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    // free source data
-    stbi_image_free(image_data);
-    //    glBindTexture(GL_TEXTURE_2D, 0);
-
-    // texture_1
-    image_data = stbi_load("awesomeface.png", &image_width, &image_height, &image_nrChannels, 0);
-    unsigned int texture_1;
-    glGenTextures(1, &texture_1);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, texture_1);
-    // filters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    if( image_data ){
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    // free source data
-    stbi_image_free(image_data);
-    //    glBindTexture(GL_TEXTURE_2D, 0);
 
 
     // TRANSFORMATIONS
@@ -216,69 +109,26 @@ void OpenGlRenderer::paint()
       glm::vec3(-1.3f,  1.0f, -1.5f)
     };
 
-
-
-    // SETUP VERTEX SHADER
-    data = stringFromShaderFile(":/Shaders/simple.vert").toLocal8Bit();
-    const char* vertexShaderSource = data.data();
-    unsigned int vertexShader;
-    vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
-    data.clear();
-    glCompileShader(vertexShader);
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if(!success)
-    {
-        glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
-        qDebug() << "ERROR::SHADER::VERTEX::COMPILATION_FAILED" << infoLog;
-    }
-
-    // SETUP FRAGMENT SHADER
-    data = stringFromShaderFile(":/Shaders/simple.frag").toLocal8Bit();
-    const char* fragmentShaderSource = data.data();
-    unsigned int fragmentShader;
-    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
-    data.clear();
-    glCompileShader(fragmentShader);
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if(!success)
-    {
-        glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
-        qDebug() << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED" << infoLog;
-    }
-
-    // SETUP SHADER PROGRAM
-    unsigned int shaderProgram;
-    shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if(!success) {
-        glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
-        qDebug() << "ERROR::PROGRAM::COMPILATION_FAILED" << infoLog;
-    }
-
-    glUseProgram(shaderProgram);
-
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    glUseProgram(m_shaderPrograms["standard_prg"]);
 
     // GET/SET UNIFORMS
-    glUniform4f( glGetUniformLocation(shaderProgram, "ourColor"), 0.0f, greenValue, 0.0f, 1.0f);
-    glUniform1i( glGetUniformLocation(shaderProgram, "ourTexture_0"), 0 );
-    glUniform1i( glGetUniformLocation(shaderProgram, "ourTexture_1"), 1 );
-    // set matrices
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+    // set global time
+    glUniform1f( glGetUniformLocation(m_shaderPrograms["standard_prg"], "ourTime"), time);
 
+    // set textures
+    glUniform1i( glGetUniformLocation(m_shaderPrograms["standard_prg"], "ourTexture_0"), 0 );
+    glUniform1i( glGetUniformLocation(m_shaderPrograms["standard_prg"], "ourTexture_1"), 1 );
     // set compute shader result
-    glUniform1i( glGetUniformLocation(shaderProgram, "ourComputeShaderTexture"), 2 );
+    glUniform1i( glGetUniformLocation(m_shaderPrograms["standard_prg"], "ourComputeShaderTexture"), 2 );
 
-    glUniform1i( glGetUniformLocation(shaderProgram, "render_box"), 1 );
+    // set matrices
+    glUniformMatrix4fv(glGetUniformLocation(m_shaderPrograms["standard_prg"], "model"), 1, GL_FALSE, glm::value_ptr(model));
+    glUniformMatrix4fv(glGetUniformLocation(m_shaderPrograms["standard_prg"], "view"), 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(glGetUniformLocation(m_shaderPrograms["standard_prg"], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+    // set program execution switch
+    glUniform1i( glGetUniformLocation(m_shaderPrograms["standard_prg"], "render_box"), 1 );
+
 
     // bind correct VAO and RENDER
     if( m_gswitch ){
@@ -297,32 +147,23 @@ void OpenGlRenderer::paint()
           model = glm::translate(model, cubePositions[i]);
           float angle = 20.0f * (i+1)  * static_cast<float>(m_time);
           model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-          glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+          glUniformMatrix4fv(glGetUniformLocation(m_shaderPrograms["standard_prg"], "model"), 1, GL_FALSE, glm::value_ptr(model));
 
           glDrawArrays(GL_TRIANGLES, 0, 36);
         }
     }
 
     // draw SSBO particles as points
-    glUniform1i( glGetUniformLocation(shaderProgram, "render_box"), 0 );
+    glUniform1i( glGetUniformLocation(m_shaderPrograms["standard_prg"], "render_box"), 0 );
     glBindVertexArray( VAO_points );
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
+    glUniformMatrix4fv(glGetUniformLocation(m_shaderPrograms["standard_prg"], "model"), 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
     glDrawArrays( GL_POINTS, 0, 1024*1024 );
 
     // CLEANUP
     glBindVertexArray(0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDeleteProgram(shaderProgram);
-    glDeleteTextures(1, &texture_0);
-    glDeleteTextures(1, &texture_1);
 
-    // COMPUTE SHADER CLEANUP
-    glDeleteTextures(1, &tex_output);
-    glDeleteShader(computeShader);
-    glDeleteProgram(computeProgram);
-
-
-    m_window->resetOpenGLState();
+    // strange behaviour for this
+//    m_window->resetOpenGLState();
 }
 
 // BUFFER INITIALIZATNIOS
@@ -333,7 +174,13 @@ void OpenGlRenderer::initialize()
     initializeOpenGLFunctions();
     QRandomGenerator rd;
 
+    // INIT STATES
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+    glEnable(GL_DEPTH_TEST);
+
+    // diagnostic items
+    int  success;
+    char infoLog[512];
 
     QOpenGLContext* context = m_window->openglContext();
     QSurfaceFormat def_fb_surface_format = context->format();
@@ -350,7 +197,7 @@ void OpenGlRenderer::initialize()
     qDebug() << "Default framebuffer surface. Context profile: "<< context_profile;
     qDebug() << "Default framebuffer surface. Renderable type: "<< renderable_type;
 
-    //COMPUTE SHADER INFO
+    //COMPUTE SHADER INFORMATION
     int maxsizeX;
     uint dim = 0;
     glGetIntegeri_v( GL_MAX_COMPUTE_WORK_GROUP_SIZE, dim, &maxsizeX );
@@ -365,6 +212,50 @@ void OpenGlRenderer::initialize()
     int maxInvoc;
     glGetIntegerv( GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &maxInvoc );
     qDebug() << "Max invocations in (local) work group: "<< maxInvoc;
+
+    // COMPUTE SHADER - FILL TEXTURE
+    //  ** create texture **
+    int tex_w = 512, tex_h = 512;
+//    int group_size = 32;
+    GLuint tex_output;
+//    m_textures.append( tex_output );
+    m_imageTextures.insert("compute_texture", tex_output );
+    glGenTextures(1, &m_imageTextures["compute_texture"]);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, m_imageTextures["compute_texture"]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, tex_w, tex_h, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glBindImageTexture(0, m_imageTextures["compute_texture"], 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    // ** create shader and program **
+    // create compute shader
+    QByteArray data = stringFromShaderFile(":/Shaders/simpleCompute").toLocal8Bit();
+    const char* computeShaderSource = data.data();
+    GLuint computeShader = glCreateShader(GL_COMPUTE_SHADER);
+    glShaderSource(computeShader, 1, &computeShaderSource, nullptr);
+    glCompileShader(computeShader);
+    glGetShaderiv(computeShader, GL_COMPILE_STATUS, &success);
+    // check compilation errors
+    if(!success)
+    {
+        glGetShaderInfoLog(computeShader, 512, nullptr, infoLog);
+        qDebug() << "ERROR::SHADER::COMPUTE::COMPILATION_FAILED" << infoLog;
+    }
+    // create program object
+    m_shaderPrograms.insert( "fill_texture_compute_prg", glCreateProgram() );
+    glAttachShader(m_shaderPrograms["fill_texture_compute_prg"], computeShader);
+    // link program
+    glLinkProgram(m_shaderPrograms["fill_texture_compute_prg"]);
+    // check link errors
+    glGetProgramiv(m_shaderPrograms["fill_texture_compute_prg"], GL_LINK_STATUS, &success);
+    if(!success) {
+        glGetProgramInfoLog(m_shaderPrograms["fill_texture_compute_prg"], 512, nullptr, infoLog);
+        qDebug() << "ERROR::COMPUTE::PROGRAM::COMPILATION_FAILED" << infoLog;
+    }
+    // clean up shader object
+    glDeleteShader(computeShader);
 
 
     // POINTS COMPUTE SHADER
@@ -385,18 +276,18 @@ void OpenGlRenderer::initialize()
     // fill our buffer
     for( int i = 0; i < NUM_PARTICLES; i++){
 
-        float x, y, z;
+        qreal px, py, pz;
 
         do{
-            x = static_cast<float>((rd.generateDouble()-0.5) * 2);
-            y = static_cast<float>((rd.generateDouble()-0.5) * 2);
-            z = static_cast<float>((rd.generateDouble()-0.5) * 2);
-        }while( qSqrt( qPow( x, 2.0)+qPow(y,2.0)+qPow(z, 2.0) ) > 1.0 );
+            px = (rd.generateDouble()-0.5) * 2;
+            py = (rd.generateDouble()-0.5) * 2;
+            pz = (rd.generateDouble()-0.5) * 2;
+        }while( qSqrt( qPow(px, 2.0) + qPow(py,2.0) + qPow(pz, 2.0) ) > 1.0 );
 
-        points[i].x = x;
-        points[i].y = y;
-        points[i].z = z;
-        points[i].w = 1.0;
+        points[i].x = static_cast<float>(px);
+        points[i].y = static_cast<float>(py);
+        points[i].z = static_cast<float>(pz);
+        points[i].w = static_cast<float>(1.0);
     }
     glUnmapBuffer( GL_SHADER_STORAGE_BUFFER );
 
@@ -415,18 +306,18 @@ void OpenGlRenderer::initialize()
     // fill our buffer
     for( int i = 0; i < NUM_PARTICLES; i++){
 
-        float x, y, z;
+        qreal vx, vy, vz;
 
         do{
-            x = static_cast<float>((rd.generateDouble()-0.5) * 20);
-            y = static_cast<float>((rd.generateDouble()-0.5) * 20);
-            z = static_cast<float>((rd.generateDouble()-0.5) * 20);
-        }while( qSqrt( qPow( x, 2.0)+qPow(y,2.0)+qPow(z, 2.0) ) > 10.0 );
+            vx = (rd.generateDouble()-0.5) * 2;
+            vy = (rd.generateDouble()-0.5) * 2;
+            vz = (rd.generateDouble()-0.5) * 2;
+        }while( qSqrt( qPow(vx, 2.0) + qPow(vy,2.0) + qPow(vz, 2.0) ) > 1.0 );
 
-        velocities[i].vx = x;
-        velocities[i].vy = y;
-        velocities[i].vz = z;
-        velocities[i].vw = 0.0;
+        velocities[i].vx = static_cast<float>(vx);
+        velocities[i].vy = static_cast<float>(vy);
+        velocities[i].vz = static_cast<float>(vz);
+        velocities[i].vw = static_cast<float>(0.0);
     }
     glUnmapBuffer( GL_SHADER_STORAGE_BUFFER );
 
@@ -455,7 +346,35 @@ void OpenGlRenderer::initialize()
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER,  5,  velSSbo );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER,  6,  colSSbo );
 
-    // create VAO for rendering this points
+    // CREATE PARTICLES COMPUTE PROGRAM
+    // create compute shader
+    data = stringFromShaderFile(":/Shaders/particleCompute").toLocal8Bit();
+    const char* computeParticlesSource = data.data();
+    GLuint computeParticlesShader = glCreateShader(GL_COMPUTE_SHADER);
+    glShaderSource(computeParticlesShader, 1, &computeParticlesSource, nullptr);
+    glCompileShader(computeParticlesShader);
+    glGetShaderiv(computeParticlesShader, GL_COMPILE_STATUS, &success);
+    // check compilation errors
+    if(!success)
+    {
+        glGetShaderInfoLog(computeParticlesShader, 512, nullptr, infoLog);
+        qDebug() << "ERROR::SHADER::PARTICLE::COMPUTE::COMPILATION_FAILED" << infoLog;
+    }
+    // create program onject
+    m_shaderPrograms.insert("particles_compute_prg", glCreateProgram());
+    glAttachShader(m_shaderPrograms["particles_compute_prg"], computeParticlesShader);
+    // link program
+    glLinkProgram(m_shaderPrograms["particles_compute_prg"]);
+    // check link errors
+    glGetProgramiv(m_shaderPrograms["particles_compute_prg"], GL_LINK_STATUS, &success);
+    if(!success) {
+        glGetProgramInfoLog(m_shaderPrograms["particles_compute_prg"], 512, nullptr, infoLog);
+        qDebug() << "ERROR::::PARTICLE::PROGRAM::COMPILATION_FAILED" << infoLog;
+    }
+    // clean up shader object
+    glDeleteShader(computeParticlesShader);
+
+    // CREATE VAO FOR RENDERING POINTS
     glGenVertexArrays(1, &VAO_points);
     glBindVertexArray(VAO_points);
     // bind SSBO buffer
@@ -469,6 +388,51 @@ void OpenGlRenderer::initialize()
     glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 12 * sizeof(float), reinterpret_cast<void*>(8* sizeof(float)));
     glEnableVertexAttribArray(1);
     glBindVertexArray(0);
+
+
+    // IMAGES and TEXTURES
+    int image_width, image_height, image_nrChannels;
+    unsigned char *image_data;
+    stbi_set_flip_vertically_on_load(true);
+
+    // texture_0
+    image_data = stbi_load("container.jpg", &image_width, &image_height, &image_nrChannels, 0);
+    unsigned int texture_0;
+    m_imageTextures.insert("container_tex", texture_0 );
+    glGenTextures(1, &m_imageTextures["container_tex"]);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_imageTextures["container_tex"]);
+    // filters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // copy data
+    if( image_data ){
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    // free source data
+    stbi_image_free(image_data);
+
+    // texture_1
+    image_data = stbi_load("awesomeface.png", &image_width, &image_height, &image_nrChannels, 0);
+    unsigned int texture_1;
+    m_imageTextures.insert("awesomeface_tex", texture_1 );
+    glGenTextures(1, &m_imageTextures["awesomeface_tex"]);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, m_imageTextures["awesomeface_tex"]);
+    // filters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if( image_data ){
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    // free source data
+    stbi_image_free(image_data);
 
 
 
@@ -629,9 +593,53 @@ void OpenGlRenderer::initialize()
 
     glBindVertexArray(0);
 
-
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+
+    // GENERAL PROGRAM and SHADERS
+    // SETUP VERTEX SHADER
+    data = stringFromShaderFile(":/Shaders/simple.vert").toLocal8Bit();
+    const char* vertexShaderSource = data.data();
+    unsigned int vertexShader;
+    vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
+    data.clear();
+    glCompileShader(vertexShader);
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+    if(!success)
+    {
+        glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
+        qDebug() << "ERROR::SHADER::VERTEX::COMPILATION_FAILED" << infoLog;
+    }
+    // SETUP FRAGMENT SHADER
+    data = stringFromShaderFile(":/Shaders/simple.frag").toLocal8Bit();
+    const char* fragmentShaderSource = data.data();
+    unsigned int fragmentShader;
+    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
+    data.clear();
+    glCompileShader(fragmentShader);
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+    if(!success)
+    {
+        glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
+        qDebug() << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED" << infoLog;
+    }
+    // SETUP SHADER PROGRAM
+    m_shaderPrograms.insert("standard_prg", glCreateProgram());
+    glAttachShader(m_shaderPrograms["standard_prg"], vertexShader);
+    glAttachShader(m_shaderPrograms["standard_prg"], fragmentShader);
+    glLinkProgram(m_shaderPrograms["standard_prg"]);
+    glGetProgramiv(m_shaderPrograms["standard_prg"], GL_LINK_STATUS, &success);
+    if(!success) {
+        glGetProgramInfoLog(m_shaderPrograms["standard_prg"], 512, nullptr, infoLog);
+        qDebug() << "ERROR::PROGRAM::COMPILATION_FAILED" << infoLog;
+    }
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
 
     // not sure about this
     // does not work on HP!
@@ -639,7 +647,6 @@ void OpenGlRenderer::initialize()
 //    glDeleteBuffers(1,&EBO_tri);
 //    glDeleteBuffers(1,&VBO_quad);
 //    glDeleteBuffers(1,&EBO_quad);
-
 }
 
 // CLEANUP
