@@ -17,4 +17,5 @@ void main(){
     gl_Position = projection * view * model * vec4(vertexPosition.xyz, 1.0);
     out_vertexColor = vertexColor;
     out_texCoordinate_01 = texCoordinate_01;
+    gl_PointSize = 5;
 }

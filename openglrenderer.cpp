@@ -69,9 +69,10 @@ void OpenGlRenderer::paint()
     int  success;
     char infoLog[512];
 
-    // COMPUTE SHADER TEST
+    // COMPUTE SHADER - FILL TEXTURE
     // create texture
     int tex_w = 512, tex_h = 512;
+    int group_size = 32;
     GLuint tex_output;
     glGenTextures(1, &tex_output);
     glActiveTexture(GL_TEXTURE2);
@@ -107,7 +108,7 @@ void OpenGlRenderer::paint()
     }
 
     glUseProgram(computeProgram);
-    glDispatchCompute((GLuint)tex_w, (GLuint)tex_h, 1);
+    glDispatchCompute((GLuint)tex_w/group_size, (GLuint)tex_h/group_size, 1);
 
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
@@ -277,6 +278,7 @@ void OpenGlRenderer::paint()
     // set compute shader result
     glUniform1i( glGetUniformLocation(shaderProgram, "ourComputeShaderTexture"), 2 );
 
+    glUniform1i( glGetUniformLocation(shaderProgram, "render_box"), 1 );
 
     // bind correct VAO and RENDER
     if( m_gswitch ){
@@ -302,6 +304,7 @@ void OpenGlRenderer::paint()
     }
 
     // draw SSBO particles as points
+    glUniform1i( glGetUniformLocation(shaderProgram, "render_box"), 0 );
     glBindVertexArray( VAO_points );
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
     glDrawArrays( GL_POINTS, 0, 1024*1024 );
@@ -329,6 +332,8 @@ void OpenGlRenderer::initialize()
 
     initializeOpenGLFunctions();
     QRandomGenerator rd;
+
+    glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
     QOpenGLContext* context = m_window->openglContext();
     QSurfaceFormat def_fb_surface_format = context->format();
@@ -379,9 +384,18 @@ void OpenGlRenderer::initialize()
     struct pos* points = (struct pos*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_PARTICLES * sizeof( struct pos ), bufMask);
     // fill our buffer
     for( int i = 0; i < NUM_PARTICLES; i++){
-        points[i].x = static_cast<float>((rd.generateDouble()-0.5) * 0.2);
-        points[i].y = static_cast<float>((rd.generateDouble()-0.5) * 0.2);
-        points[i].z = static_cast<float>((rd.generateDouble()-0.5) * 0.2);
+
+        float x, y, z;
+
+        do{
+            x = static_cast<float>((rd.generateDouble()-0.5) * 2);
+            y = static_cast<float>((rd.generateDouble()-0.5) * 2);
+            z = static_cast<float>((rd.generateDouble()-0.5) * 2);
+        }while( qSqrt( qPow( x, 2.0)+qPow(y,2.0)+qPow(z, 2.0) ) > 1.0 );
+
+        points[i].x = x;
+        points[i].y = y;
+        points[i].z = z;
         points[i].w = 1.0;
     }
     glUnmapBuffer( GL_SHADER_STORAGE_BUFFER );
@@ -400,9 +414,18 @@ void OpenGlRenderer::initialize()
     struct vel* velocities = (struct vel*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_PARTICLES * sizeof( struct vel ), bufMask);
     // fill our buffer
     for( int i = 0; i < NUM_PARTICLES; i++){
-        velocities[i].vx = static_cast<float>((rd.generateDouble()-0.5) * 20.0);
-        velocities[i].vy = static_cast<float>((rd.generateDouble()-0.5) * 20.0);
-        velocities[i].vz = static_cast<float>((rd.generateDouble()-0.5) * 20.0);
+
+        float x, y, z;
+
+        do{
+            x = static_cast<float>((rd.generateDouble()-0.5) * 20);
+            y = static_cast<float>((rd.generateDouble()-0.5) * 20);
+            z = static_cast<float>((rd.generateDouble()-0.5) * 20);
+        }while( qSqrt( qPow( x, 2.0)+qPow(y,2.0)+qPow(z, 2.0) ) > 10.0 );
+
+        velocities[i].vx = x;
+        velocities[i].vy = y;
+        velocities[i].vz = z;
         velocities[i].vw = 0.0;
     }
     glUnmapBuffer( GL_SHADER_STORAGE_BUFFER );
@@ -440,7 +463,10 @@ void OpenGlRenderer::initialize()
     // set vertex attributes
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), nullptr);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 12 * sizeof(float), reinterpret_cast<void*>(4* sizeof(float)));
+    // bind SSBO buffer
+    glBindBuffer( GL_ARRAY_BUFFER, colSSbo );
+    // set vertex attributes
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 12 * sizeof(float), reinterpret_cast<void*>(8* sizeof(float)));
     glEnableVertexAttribArray(1);
     glBindVertexArray(0);
 

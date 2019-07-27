@@ -9,13 +9,14 @@
 #include <QFile>
 #include <QByteArray>
 #include <QRandomGenerator>
+#include <QtMath>
 
 #include "stb_image.h"
 #include "glm_pch.h"
 
 
 // ALLOCATE COMPUTE SHADER BUFFERS
-#define NUM_PARTICLES 1024*1024
+#define NUM_PARTICLES 256*256
 #define WORK_GROUP_SIZE 128
 
 

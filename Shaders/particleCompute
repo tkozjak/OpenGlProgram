@@ -17,7 +17,23 @@ layout( std140, binding=6 ) buffer Col
 layout( local_size_x = 128,  local_size_y = 1, local_size_z = 1 )   in;
 
 const vec3 G = vec3( 0., -9.8, 0. );
-const float DT = 0.01;
+const float DT = 0.016;
+
+const vec3 groundPlane = vec3( 0.0, -3.5, 0.0 );
+
+const float dumpFactor = 0.99;
+
+bool IsBelowSurface( vec3 position, vec3 surface ){
+    if( surface.y > position.y )
+        return true;
+     else
+        return false;
+}
+
+vec3 BounceFromGround( vec3 velocity_in ){
+    vec3 velocity_out = reflect( velocity_in, vec3( 0.0, 1.0, 0.0 ) );
+    return velocity_out;
+}
 
 void main() {
     uint gid = gl_GlobalInvocationID.x;
@@ -27,6 +43,13 @@ void main() {
     vec3 pp = p + v*DT + 0.5*DT*DT*G;
     vec3 vp = v + G*DT;
 
+    if( IsBelowSurface(pp, groundPlane)){
+        vp = BounceFromGround( vp );
+        pp = p + v*DT + 0.5*DT*DT*G;
+    }
+
     Positions[gid].xyz = pp;
-    Velocities[gid].xyz = vp;
+    Velocities[gid].xyz = vp * dumpFactor;
+
+
 }
