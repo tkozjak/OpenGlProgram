@@ -9,9 +9,8 @@ shared uint num_invocations;
 void main() {
 
 
-  memoryBarrierShared();
-  barrier();
   num_invocations=0;
+  barrier();
 
 
   // base pixel colour for image
@@ -34,15 +33,13 @@ void main() {
     pixel.z = 1.0;
 
 
-  //atomicAdd( num_invocations, 1);
+  uint my_inv = 0;
   barrier();
-  num_invocations +=1;
-  memoryBarrierShared();
+  my_inv = atomicAdd( num_invocations, 1);
   barrier();
-  //atomicAdd( num_invocations, 1 );
+
 
 
   // output to a specific pixel in the image
-  barrier();
-  imageStore(img_output, pixel_coords, vec4(pixel.xyz, num_invocations));
+  imageStore(img_output, pixel_coords, vec4(pixel.xyz, my_inv));
 }
