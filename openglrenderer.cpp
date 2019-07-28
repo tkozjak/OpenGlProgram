@@ -75,8 +75,19 @@ void OpenGlRenderer::paint()
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 
+    // experiment: read texture
+    GLfloat* pixels = new GLfloat[tex_w*tex_h*4];
+    glActiveTexture(GL_TEXTURE2);
+    glGetTexImage( GL_TEXTURE_2D, 0, GL_RGBA,  GL_FLOAT, pixels);
+    qDebug() << "pixels get texture: " << pixels[3] << pixels[7] << pixels[11] << pixels[15];
+    delete [] pixels;
+
+
+
     // RUN PARTICLES COMPUTE SHADER PROGRAM
     glUseProgram(m_shaderPrograms["particles_compute_prg"]);
+    glUniform1f( glGetUniformLocation(m_shaderPrograms["particles_compute_prg"], "time_1"), time);
+    glUniform1f( glGetUniformLocation(m_shaderPrograms["particles_compute_prg"], "time_2"), QDateTime::currentDateTime().time().second());
     glDispatchCompute( NUM_PARTICLES/WORK_GROUP_SIZE, 1, 1);
     // put up memory barrier
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -261,7 +272,7 @@ void OpenGlRenderer::initialize()
     // POINTS COMPUTE SHADER
     // structure for particle position
     struct pos{
-        float x, y, z , w;
+        float x, y, z , lifespan;
     };
     // create and bind shader storage buffer object
     GLuint posSSbo;
@@ -287,13 +298,13 @@ void OpenGlRenderer::initialize()
         points[i].x = static_cast<float>(px);
         points[i].y = static_cast<float>(py);
         points[i].z = static_cast<float>(pz);
-        points[i].w = static_cast<float>(1.0);
+        points[i].lifespan = static_cast<float>(1.0);
     }
     glUnmapBuffer( GL_SHADER_STORAGE_BUFFER );
 
     // structure for particle velocity
     struct vel{
-        float vx, vy, vz , vw;
+        float vx, vy, vz , life;
     };
     // create and bind shader storage buffer object
     GLuint velSSbo;
@@ -317,7 +328,7 @@ void OpenGlRenderer::initialize()
         velocities[i].vx = static_cast<float>(vx);
         velocities[i].vy = static_cast<float>(vy);
         velocities[i].vz = static_cast<float>(vz);
-        velocities[i].vw = static_cast<float>(0.0);
+        velocities[i].life = static_cast<float>(0.0);
     }
     glUnmapBuffer( GL_SHADER_STORAGE_BUFFER );
 
@@ -409,11 +420,19 @@ void OpenGlRenderer::initialize()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     // copy data
     if( image_data ){
+        qDebug() << "pixels image data: " << image_data[0] << image_data[1] << image_data[2];
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     // free source data
     stbi_image_free(image_data);
+
+    // experiment: read texture
+    GLubyte* pixels = new GLubyte[image_width*image_height*image_nrChannels];
+    glActiveTexture(GL_TEXTURE0);
+    glGetTexImage( GL_TEXTURE_2D, 0, GL_RGB,  GL_UNSIGNED_BYTE, pixels);
+    qDebug() << "pixels get texture: " << pixels[0] << pixels[1] << pixels[2];
+    delete [] pixels;
 
     // texture_1
     image_data = stbi_load("awesomeface.png", &image_width, &image_height, &image_nrChannels, 0);

@@ -4,7 +4,16 @@ layout(local_size_x = 32, local_size_y = 32) in;
 
 layout(rgba32f, binding = 0) uniform image2D img_output;
 
+shared uint num_invocations;
+
 void main() {
+
+
+  memoryBarrierShared();
+  barrier();
+  num_invocations=0;
+
+
   // base pixel colour for image
   vec4 pixel = vec4(0.0, 0.0, 0.0, 1.0);
 
@@ -24,6 +33,16 @@ void main() {
   else
     pixel.z = 1.0;
 
+
+  //atomicAdd( num_invocations, 1);
+  barrier();
+  num_invocations +=1;
+  memoryBarrierShared();
+  barrier();
+  //atomicAdd( num_invocations, 1 );
+
+
   // output to a specific pixel in the image
-  imageStore(img_output, pixel_coords, pixel);
+  barrier();
+  imageStore(img_output, pixel_coords, vec4(pixel.xyz, num_invocations));
 }

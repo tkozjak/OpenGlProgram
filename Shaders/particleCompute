@@ -16,12 +16,16 @@ layout( std430, binding=6 ) buffer Col
 
 layout( local_size_x = 32,  local_size_y = 1, local_size_z = 1 )   in;
 
-const vec3 G = vec3( 0.0, -9.8, 0.0 );
+const vec3 G = vec3( 0.0, -3.0, 0.0 );
 const float DT = 0.010;
 
-const vec3 groundPlane = vec3( 0.0, -2.0, 0.0 );
+const vec3 groundPlane = vec3( 0.0, -1.0, 0.0 );
 
-const float dumpFactor = 0.0;
+const float dumpFactor = 1.0;
+
+uniform float time_1;
+uniform float time_2;
+
 
 bool IsBelowSurface( vec3 position, vec3 surface ){
     if( surface.y > position.y )
@@ -35,21 +39,39 @@ vec3 BounceFromGround( vec3 velocity_in ){
     return velocity_out;
 }
 
+float random (vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
+
 void main() {
     uint gid = gl_GlobalInvocationID.x;
+
+    vec3 mod_G = vec3( 0.0, -time_1*9.8, 0.0 );
+
+    // check life
+    if( Velocities[gid].w > Positions[gid].w ){
+        //Colors[gid] = vec4( 0.0, 0.0, 0.0, 1.0 );
+        Positions[gid] = vec4( 0.0, 0.0, 0.0, 5.0 );
+        Velocities[gid] = vec4( Velocities[gid].xyz, 1.0 );
+    }
+
     vec3 p = Positions[gid].xyz;
     vec3 v = Velocities[gid].xyz;
 
-    vec3 pp = p + v*DT + 0.5*DT*DT*G;
-    vec3 vp = v + G*DT;
+    vec3 pp = p + v*DT + 0.5*DT*DT*mod_G;
+    vec3 vp = v + mod_G*DT;
 
     if( IsBelowSurface(pp, groundPlane)){
         vp = BounceFromGround( vp ) * dumpFactor;
-        pp = p + v*DT + 0.5*DT*DT*G;
+        pp = p + v*DT + 0.5*DT*DT*mod_G;
     }
 
     Positions[gid].xyz = pp;
     Velocities[gid].xyz = vp;
+
+    // add time to life
+    Velocities[gid].w += DT;
+
 
 
 }
