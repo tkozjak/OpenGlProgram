@@ -1,6 +1,6 @@
 #version 440 compatibility
 
-layout(local_size_x = 32, local_size_y = 32) in;
+layout(local_size_x = 32, local_size_y = 1) in;
 
 layout(rgba32f, binding = 0) uniform image2D img_output;
 
@@ -12,7 +12,6 @@ void main() {
   num_invocations=0;
   barrier();
 
-
   // base pixel colour for image
   vec4 pixel = vec4(0.0, 0.0, 0.0, 1.0);
 
@@ -20,26 +19,22 @@ void main() {
   ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
   ivec2 local_coordinates = ivec2(gl_LocalInvocationID.xy);
 
-    int lim = 16;
+  int lim = 16;
 
-  //
-  // interesting stuff happens here later
-  //
-  if( local_coordinates.x < lim && local_coordinates.y < lim )
+  // paint pixels
+  if( local_coordinates.x < lim )
     pixel.x = 1.0;
-  else if ( local_coordinates.x >= lim && local_coordinates.y >= lim )
+  else if ( local_coordinates.x >= lim )
     pixel.y = 1.0;
   else
     pixel.z = 1.0;
 
 
-  uint my_inv = 0;
-  barrier();
-  my_inv = atomicAdd( num_invocations, 1);
-  barrier();
-
+  if( gl_LocalInvocationIndex == 11 )
+    num_invocations = gl_LocalInvocationIndex;
+  memoryBarrier();
 
 
   // output to a specific pixel in the image
-  imageStore(img_output, pixel_coords, vec4(pixel.xyz, my_inv));
+  imageStore(img_output, pixel_coords, vec4(pixel.xyz, num_invocations));
 }

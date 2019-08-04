@@ -2,7 +2,7 @@
 #define OPENGLRENDERER_H
 
 #include <QObject>
-#include <QOpenGLFunctions_4_5_Core>
+#include <QOpenGLFunctions_4_4_Core>
 #include <QOpenGLContext>
 #include <QDebug>
 #include <QQuickWindow>
@@ -23,7 +23,7 @@
 #define WORK_GROUP_SIZE 32
 
 
-class OpenGlRenderer : public QObject, protected QOpenGLFunctions_4_5_Core
+class OpenGlRenderer : public QObject, protected QOpenGLFunctions_4_4_Core
 {
     Q_OBJECT
 

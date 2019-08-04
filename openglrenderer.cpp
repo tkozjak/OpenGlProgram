@@ -70,7 +70,7 @@ void OpenGlRenderer::paint()
     int tex_w = 512, tex_h = 512;
     int group_size = 32;
     glUseProgram(m_shaderPrograms["fill_texture_compute_prg"]);
-    glDispatchCompute((GLuint)tex_w/group_size, (GLuint)tex_h/group_size, 1);
+    glDispatchCompute((GLuint)tex_w/group_size, (GLuint)tex_h, 1);
     // put up memory barrier
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
@@ -79,7 +79,41 @@ void OpenGlRenderer::paint()
     GLfloat* pixels = new GLfloat[tex_w*tex_h*4];
     glActiveTexture(GL_TEXTURE2);
     glGetTexImage( GL_TEXTURE_2D, 0, GL_RGBA,  GL_FLOAT, pixels);
-    qDebug() << "pixels get texture: " << pixels[3] << pixels[7] << pixels[11] << pixels[15];
+
+    qDebug() << "pixels get texture: "
+             << pixels[3]
+             << pixels[7]
+             << pixels[11]
+             << pixels[15]
+             << pixels[19]
+             << pixels[23]
+             << pixels[27]
+             << pixels[31]
+             << pixels[35]
+             << pixels[39]
+             << pixels[43]
+             << pixels[47]
+             << pixels[51]
+             << pixels[55]
+             << pixels[59]
+             << pixels[63]
+             << pixels[67]
+             << pixels[71]
+             << pixels[75]
+             << pixels[79]
+             << pixels[83]
+             << pixels[87]
+             << pixels[91]
+             << pixels[95]
+             << pixels[99]
+             << pixels[103]
+             << pixels[107]
+             << pixels[111]
+             << pixels[115]
+             << pixels[119]
+             << pixels[123]
+             << pixels[127];
+
     delete [] pixels;
 
 
